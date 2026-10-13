@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Indefinite vs. imperfect drill</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f6f8;--card:#fff;--ink:#14232e;--mute:#5a6b77;--line:#d3dde4;--pre:#1f6f8b;--imp:#c2570c;--ok:#2d7a4b;--bad:#b3261e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a21;--card:#17262f;--ink:#e8f0f4;--mute:#9db0bb;--line:#2b3f4b;--pre:#6cc3e0;--imp:#f0a066;--ok:#7bd49a;--bad:#ff8a80}}
+:root[data-theme="dark"]{--bg:#0f1a21;--card:#17262f;--ink:#e8f0f4;--mute:#9db0bb;--line:#2b3f4b;--pre:#6cc3e0;--imp:#f0a066;--ok:#7bd49a;--bad:#ff8a80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 Georgia,"Times New Roman",serif}
+main{max-width:560px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:26px;line-height:1.2;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 16px;font-size:15px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.k{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.4}
+.k b{display:block;font-size:16px;margin-bottom:2px}
+.k.p{border-top:4px solid var(--pre)}.k.p b{color:var(--pre)}
+.k.i{border-top:4px solid var(--imp)}.k.i b{color:var(--imp)}
+.bar{height:6px;background:var(--line);border-radius:3px;margin:8px 0 14px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--pre);width:0;transition:width .3s}
+.meta{display:flex;justify-content:space-between;color:var(--mute);font-size:14px}
+.q{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 16px}
+.s{font-size:21px;line-height:1.4;margin:0 0 6px}
+.en{color:var(--mute);font-size:15px;margin:0 0 14px;font-style:italic}
+.opts{display:grid;gap:10px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:14px;min-height:48px;text-align:center}
+button:focus-visible{outline:3px solid var(--pre);outline-offset:2px}
+.opts button{font-size:20px}
+.opts button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--card))}
+.opts button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,var(--card))}
+.fb{margin-top:14px;font-size:16px}
+.fb .t{font-weight:bold}
+.go{background:var(--ink);color:var(--bg);border-color:var(--ink);width:100%;margin-top:14px}
+.hint{background:none;border:none;color:var(--mute);text-decoration:underline;padding:8px 0;min-height:0;font-size:14px}
+.big{font-size:44px;margin:0}
+.miss{margin:12px 0 0;padding:0;list-style:none}
+.miss li{padding:10px 0;border-top:1px solid var(--line);font-size:16px}
+.miss small{display:block;color:var(--mute)}
+[hidden]{display:none!important}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}.modes button{padding:8px 4px;font-size:14px;line-height:1.25}.modes button.on{border-color:var(--pre);background:color-mix(in srgb,var(--pre) 15%,var(--card))}
+</style>
+</head>
+<body>
+<main>
+<h1>Indefinite vs. imperfect</h1>
+<p class="sub">Spanish past tenses. Pick the form that fits the meaning.</p>
+
+<div class="two">
+<div class="k p"><b>Indefinite</b>A finished event. Single actions, a set number of times, a clear start or end. Think: "what happened."</div>
+<div class="k i"><b>Imperfect</b>The setting. Habits, ongoing actions, descriptions, age, weather, time, feelings. Think: "what it was like."</div>
+</div>
+
+<div class="modes" id="modes"><button data-m="basics">Basics</button><button data-m="verbs">Meaning-change verbs</button><button data-m="story">Short stories</button></div>
+<div id="quiz">
+<div class="meta"><span id="num"></span><span id="score"></span></div>
+<div class="bar"><i id="prog"></i></div>
+<div class="q">
+<p class="s" id="sent"></p>
+<p class="en" id="en"></p>
+<div class="opts" id="opts"></div>
+<button class="hint" id="hintBtn">Show a clue</button>
+<div id="hint" class="en" hidden></div>
+<div class="fb" id="fb" hidden></div>
+<button class="go" id="next" hidden>Next</button>
+</div>
+</div>
+
+<div id="done" class="q" hidden>
+<p class="big" id="final"></p>
+<p id="msg"></p>
+<ul class="miss" id="miss"></ul>
+<button class="go" id="again">Try again (reshuffled)</button>
+</div>
+</main>
+
+<script>
+const Q=[
+["Ayer yo ___ pizza.","Yesterday I ate pizza.","comí","comía","Single finished event: indefinite.","ayer, anoche, el año pasado, una vez"],
+["Cuando era niño, ___ en el parque todos los días.","When I was a kid, I played in the park every day.","jugaba","jugué","Repeated habit in the past: imperfect.","todos los días, siempre, a menudo, cuando era niño"],
+["___ cuando salí de casa.","It was raining when I left the house.","Llovía","Llovió","Weather sets the scene while the other action happens.","One action is background, the other interrupts it"],
+["De repente, ___ el teléfono.","Suddenly, the phone rang.","sonó","sonaba","A sudden single event: indefinite.","de repente, de pronto"],
+["Mi abuela ___ muy simpática.","My grandmother was very nice.","era","fue","Describing a person's general quality: imperfect.","Description, no clear start or end"],
+["Anoche ___ tres capítulos.","Last night I read three chapters.","leí","leía","A specific number of chapters, done: indefinite.","anoche, specific quantity"],
+["Mientras yo ___, mi hermano cocinaba.","While I studied, my brother cooked.","estudiaba","estudié","Two actions happening at the same time: imperfect.","mientras"],
+["Ayer ___ mucho frío.","Yesterday it was very cold.","hacía","hizo","Weather description: imperfect, even with 'ayer'.","Weather is scenery, not an event"],
+["El año pasado ___ a México.","Last year I traveled to Mexico.","viajé","viajaba","A completed trip: indefinite.","el año pasado"],
+["Ella ___ diez años cuando se mudó.","She was ten when she moved.","tenía","tuvo","Age is a description: imperfect.","Age, time, and feelings are usually imperfect"],
+["Ayer ___ mi cumpleaños.","Yesterday was my birthday.","fue","era","A specific day that is now over, treated as one event: indefinite.","Imperfect is also common here; this is the 'completed' framing"],
+["Yo ___ llamarte, pero no tuve tiempo.","I wanted to call you, but I didn't have time.","quería","quise","An intention or state of mind in the background: imperfect.","The wanting was ongoing, not a finished action"],
+["Cuando ___ a casa, mi madre ya dormía.","When I arrived home, my mother was already sleeping.","llegué","llegaba","Arriving is a single event; sleeping is the ongoing state.","The interrupting action is indefinite"],
+["Todos los veranos ___ a la playa.","Every summer we went to the beach.","íbamos","fuimos","'Every summer' signals a repeated habit: imperfect.","todos los veranos"],
+["Ayer no ___ abrir la puerta.","Yesterday I couldn't open the door (and it stayed shut).","pude","podía","Tried and failed on one occasion: indefinite. 'No podía' would describe a general inability.","Result of a specific attempt"],
+["___ las ocho cuando me desperté.","It was eight o'clock when I woke up.","Eran","Fueron","Telling the time is a description: imperfect.","Time of day is always imperfect"],
+["Ayer por la tarde ___ al supermercado.","Yesterday afternoon I went to the supermarket.","fui","iba","A single completed trip: indefinite.","ayer por la tarde"],
+["Mientras yo ___ la radio, sonó el timbre.","While I was listening to the radio, the doorbell rang.","escuchaba","escuché","Ongoing action that gets interrupted: imperfect.","mientras"],
+["De pequeña, mi abuela me ___ cuentos cada noche.","When I was little, my grandmother told me stories every night.","contaba","contó","Repeated habit: imperfect.","cada noche"],
+["El lunes ___ un examen muy difícil.","On Monday I had a very hard exam.","tuve","tenía","A specific, finished event: indefinite.","el lunes"],
+["___ mucha gente en la fiesta.","There were a lot of people at the party.","Había","Hubo","Describing the scene: imperfect.","Scene-setting, no action"],
+["Ayer ___ a tu madre en el centro.","Yesterday I saw your mother downtown.","vi","veía","One finished event: indefinite.","ayer"],
+["Cuando ___ pequeño, no me gustaban las verduras.","When I was little, I didn't like vegetables.","era","fui","Describing yourself at an age: imperfect.","cuando era pequeño"],
+["Esta mañana me ___ a las seis.","This morning I got up at six.","levanté","levantaba","One specific action: indefinite.","esta mañana"],
+["Siempre ___ el autobús al trabajo.","I always took the bus to work.","tomaba","tomé","'Siempre' signals a habit: imperfect.","siempre"],
+["De repente, la puerta se ___.","Suddenly the door opened.","abrió","abría","A sudden single event: indefinite.","de repente"],
+["Cuando entré, el niño ___ en el sofá.","When I came in, the boy was sleeping on the sofa.","dormía","durmió","Ongoing state when another action happens: imperfect.","The boy was already asleep"],
+["El año pasado ___ una casa nueva.","Last year we bought a new house.","compramos","comprábamos","A completed event: indefinite.","el año pasado"],
+["Mi casa ___ azul y muy grande.","My house was blue and very big.","era","fue","Description of a thing: imperfect.","Colour and size = description"],
+["Ayer ___ la tarea y luego cené.","Yesterday I did my homework and then had dinner.","hice","hacía","A sequence of finished actions: indefinite.","y luego"],
+["Los sábados mi papá ___ el desayuno.","On Saturdays my dad made breakfast.","preparaba","preparó","'Los sábados' = a habit: imperfect.","los sábados"],
+["Cuando vivíamos en Madrid, ___ al parque casi todos los días.","When we lived in Madrid, we went to the park almost every day.","íbamos","fuimos","Repeated habit in the past: imperfect.","casi todos los días"],
+["Ayer ___ cinco horas.","Yesterday I worked five hours.","trabajé","trabajaba","A set amount of time, now finished: indefinite.","cinco horas"],
+["Me ___ la cabeza, por eso no fui a clase.","My head hurt, so I didn't go to class.","dolía","dolió","A feeling or physical state: imperfect.","Feelings are imperfect"],
+["El niño ___ cuando lo vi.","The boy was crying when I saw him.","lloraba","lloró","Ongoing action when another happened: imperfect.","cuando lo vi (the interrupter)"],
+["La semana pasada ___ una película de terror.","Last week we watched a horror movie.","vimos","veíamos","One finished event: indefinite.","la semana pasada"],
+["Hacía sol y los pájaros ___.","It was sunny and the birds were singing.","cantaban","cantaron","Background description: imperfect.","Scene-setting"],
+["En 2019 mi hermano ___ a vivir a Chile.","In 2019 my brother moved to Chile.","se fue","se iba","A specific completed event: indefinite.","en 2019"]
+];
+
+const M=[
+["Ayer ___ a tu hermana en la fiesta.","Yesterday I met your sister at the party.","conocí","conocía","Conocer in the indefinite means 'met for the first time'."," 'Met' = indefinite"],
+["Ya ___ a Marta cuando la vi en la fiesta.","I already knew Marta when I saw her at the party.","conocía","conocí","Imperfect conocer = 'knew' (an ongoing state of familiarity).","'Already knew' = imperfect"],
+["Anoche ___ que ganamos el premio.","Last night I found out we won the prize.","supe","sabía","Saber in the indefinite means 'found out'.","'Found out' = indefinite"],
+["No ___ que estabas enfermo, por eso no te llamé.","I didn't know you were sick, so I didn't call you.","sabía","supe","Imperfect saber = 'knew / didn't know' as a state.","'Didn't know' = imperfect"],
+["Julia no ___ hablar conmigo. Colgó el teléfono.","Julia refused to talk to me. She hung up.","quiso","quería","Negative querer in the indefinite = 'refused'.","'Refused' = indefinite"],
+["De niña, ___ ser veterinaria.","As a girl, she wanted to be a vet.","quería","quiso","Imperfect querer = 'wanted' (an ongoing desire).","'Wanted' = imperfect"],
+["Por fin ___ terminar el examen.","I finally managed to finish the exam.","pude","podía","Indefinite poder = 'managed to' (succeeded once).","'Managed to' = indefinite"],
+["Cuando era joven, ___ correr diez kilómetros.","When I was young, I could run ten kilometers.","podía","pude","Imperfect poder = general ability.","'Was able to' as a general ability = imperfect"],
+["Ayer ___ noticias de mi tío.","Yesterday I got news from my uncle.","tuve","tenía","Indefinite tener = 'got / received'.","'Received' = indefinite"],
+["Mi tío ___ un coche viejo.","My uncle had an old car.","tenía","tuvo","Imperfect tener = 'had' (possession as a state).","'Had' = imperfect"],
+["Ayer ___ a mi nuevo jefe.","Yesterday I met my new boss.","conocí","conocía","Indefinite conocer = 'met'.","'Met' = indefinite"],
+["Cuando supe la noticia, ya lo ___.","When I heard the news, I already knew it.","sabía","supe","Imperfect saber = 'knew'.","'Already knew' = imperfect"],
+["Cuando ___ la noticia, lloré.","When I found out the news, I cried.","supe","sabía","Indefinite saber = 'found out'.","'Found out' = indefinite"],
+["El niño no ___ comer. Cerró la boca.","The boy refused to eat. He shut his mouth.","quiso","quería","Negative indefinite querer = 'refused'.","'Refused' = indefinite"],
+["Yo no ___ ir a la fiesta, pero fui por mi amigo.","I didn't want to go to the party, but I went for my friend.","quería","quiso","Imperfect querer = a feeling that was there, even if you acted otherwise.","'Didn't want' as a feeling = imperfect"],
+["___ abrir la caja con un cuchillo.","I managed to open the box with a knife.","Pude","Podía","Indefinite poder = 'managed to'.","'Managed to' = indefinite"],
+["Ayer ___ una carta de mi hermana.","Yesterday I got a letter from my sister.","tuve","tenía","Indefinite tener = 'got / received'.","'Received' = indefinite"],
+["Ayer ___ miedo cuando oí el ruido.","Yesterday I got scared when I heard the noise.","tuve","tenía","Indefinite tener = 'got / became' (a sudden state change).","'Got scared' = indefinite"],
+["Ya ___ a los vecinos, por eso los saludé.","I already knew the neighbors, so I greeted them.","conocía","conocí","Imperfect conocer = 'knew' (familiarity).","'Already knew' = imperfect"],
+["Cuando era niña, ___ que Santa Claus existía.","When I was a girl, I knew that Santa Claus existed (I believed it).","sabía","supe","Imperfect saber = a state of knowing.","State of mind = imperfect"],
+["Después de tres intentos, no ___ abrir la puerta.","After three tries, I couldn't open the door.","pude","podía","Negative indefinite poder = 'tried and failed'.","Specific attempts = indefinite"],
+["De joven, mi abuelo ___ mucho dinero.","As a young man, my grandfather had a lot of money.","tenía","tuvo","Imperfect tener = 'had' (a state).","'Had' = imperfect"]
+];
+(function(){
+const R=a=>a[Math.floor(Math.random()*a.length)];
+const SJ=[["yo","I"],["tú","you"],["ella","she"],["nosotros","we"],["ellos","they"]];
+const cj=(v,t,p)=>{const e=v.slice(-2),s=v.slice(0,-2);return s+(t==="i"?(e==="ar"?["é","aste","ó","amos","aron"]:["í","iste","ió","imos","ieron"]):(e==="ar"?["aba","abas","aba","ábamos","aban"]:["ía","ías","ía","íamos","ían"]))[p]};
+const V=[["hablar","con el jefe","talk","talked","to the boss"],["caminar","por el parque","walk","walked","in the park"],["cantar","en el coro","sing","sang","in the choir"],["trabajar","en una tienda","work","worked","in a store"],["estudiar","en la biblioteca","study","studied","in the library"],["cocinar","la cena","cook","cooked","dinner"],["limpiar","la casa","clean","cleaned","the house"],["ayudar","a los vecinos","help","helped","the neighbors"],["llamar","a la abuela","call","called","grandma"],["visitar","el museo","visit","visited","the museum"],["mirar","la tele","watch","watched","TV"],["escuchar","música","listen to","listened to","music"],["bailar","en las fiestas","dance","danced","at parties"],["nadar","en el lago","swim","swam","in the lake"],["preparar","el desayuno","make","made","breakfast"],["comprar","pan","buy","bought","bread"],["lavar","el coche","wash","washed","the car"],["esperar","el autobús","wait for","waited for","the bus"],["tomar","café","drink","drank","coffee"],["pasear","por la playa","stroll","strolled","along the beach"],["comer","en un restaurante","eat","ate","at a restaurant"],["beber","agua","drink","drank","water"],["aprender","inglés","learn","learned","English"],["correr","en el parque","run","ran","in the park"],["vender","libros","sell","sold","books"],["entender","la lección","understand","understood","the lesson"],["perder","el tren","miss","missed","the train"],["vivir","en el campo","live","lived","in the country"],["escribir","cartas","write","wrote","letters"],["abrir","la tienda","open","opened","the store"],["recibir","regalos","receive","received","gifts"],["asistir","a clase","attend","attended","class"],["compartir","el coche","share","shared","the car"],["subir","la montaña","climb","climbed","the mountain"],["salir","temprano","leave","left","early"]];
+const CI=[["Ayer","Yesterday"],["Anoche","Last night"],["La semana pasada","Last week"],["El año pasado","Last year"],["El lunes","On Monday"],["Hace dos días","Two days ago"],["Esta mañana","This morning"],["Anteayer","The day before yesterday"],["El sábado pasado","Last Saturday"]];
+const CP=[["Todos los días","Every day"],["Todos los veranos","Every summer"],["Los domingos","On Sundays"],["Cada mañana","Every morning"],["Con frecuencia","Often"],["En aquella época","Back then"],["Los fines de semana","On weekends"],["Muchas veces","Many times"],["A menudo","Often"]];
+const seen=new Set();
+while(seen.size<100){const v=R(V),p=Math.floor(Math.random()*5),s=SJ[p],im=Math.random()<.5,c=R(im?CP:CI),k=v[0]+p+im+c[0];if(seen.has(k))continue;seen.add(k);
+Q.push([`${c[0]}, ${s[0]} ___ ${v[1]}.`,im?`${c[1]}, ${s[1]} used to ${v[2]} ${v[4]}.`:`${c[1]}, ${s[1]} ${v[3]} ${v[4]}.`,cj(v[0],im?"m":"i",p),cj(v[0],im?"i":"m",p),im?`A habit ('${c[0].toLowerCase()}'): imperfect.`:`A finished event ('${c[0].toLowerCase()}'): indefinite.`,im?"Repeated = imperfect":"Finished = indefinite"])}
+const A=["Ayer","Anoche","Esta mañana","El lunes"],AE=["Yesterday","Last night","This morning","On Monday"],B=["Antes de la fiesta","Antes de la boda","Antes de la reunión","Antes del viaje"],BE=["Before the party","Before the wedding","Before the meeting","Before the trip"];
+const zip=(a,b)=>a.map((x,i)=>[x,b[i]]);
+const E=[
+{v:"conocer",i:["conocí","conociste","conoció","conocimos","conocieron"],m:["conocía","conocías","conocía","conocíamos","conocían"],ci:zip(A,AE),cm:zip(B,BE),oi:[["a la profesora","the teacher"],["a la directora","the principal"],["al entrenador","the coach"],["a los vecinos","the neighbors"],["al alcalde","the mayor"],["al doctor","the doctor"]],ei:"met",em:"knew",ya:1},
+{v:"saber",i:["supe","supiste","supo","supimos","supieron"],m:["sabía","sabías","sabía","sabíamos","sabían"],ci:zip(A,AE),cm:zip(B,BE),oi:[["la verdad","the truth"],["la noticia","the news"],["el resultado","the result"],["el secreto","the secret"],["la respuesta","the answer"]],ei:"found out",em:"knew",ya:1},
+{v:"querer",i:["quise","quisiste","quiso","quisimos","quisieron"],m:["quería","querías","quería","queríamos","querían"],ci:[["Ayer","Yesterday"],["Esta mañana","This morning"],["De repente","Suddenly"],["El lunes","On Monday"]],cm:[["Esa mañana","That morning"],["En aquel momento","At that moment"],["Esa tarde","That afternoon"],["Aquel día","That day"]],oi:[["salir","go out"],["comer","eat"],["hablar","talk"],["ayudar","help"],["firmar el papel","sign the paper"]],ei:"refused to",em:"didn't want to",neg:1},
+{v:"poder",i:["pude","pudiste","pudo","pudimos","pudieron"],m:["podía","podías","podía","podíamos","podían"],ci:[["Por fin","Finally"],["Al final","In the end"],["Después de mucho esfuerzo","After a lot of effort"],["Esta mañana","This morning"]],cm:[["Antes","Before"],["Hace años","Years ago"],["En aquella época","Back then"],["Cuando había tiempo","When there was time"]],oi:[["abrir la puerta","open the door"],["terminar el trabajo","finish the work"],["resolver el problema","solve the problem"],["encontrar la calle","find the street"],["subir la montaña","climb the mountain"]],ei:"managed to",em:"could"},
+{v:"tener",i:["tuve","tuviste","tuvo","tuvimos","tuvieron"],m:["tenía","tenías","tenía","teníamos","tenían"],ci:zip(A,AE),cm:[["Antes","Before"],["Hace años","Years ago"],["En aquella época","Back then"],["Durante el verano","During the summer"]],oi:[["una carta","a letter"],["una llamada","a call"],["una sorpresa","a surprise"],["un mensaje","a message"],["buenas noticias","good news"]],om:[["un perro","a dog"],["una bicicleta","a bike"],["mucho tiempo","a lot of time"],["un coche viejo","an old car"],["una casa grande","a big house"]],ei:"got",em:"had"}];
+const seen2=new Set();let n=0;
+while(n<100){const e=E[n%5],im=Math.floor(n/5)%2===1,p=Math.floor(Math.random()*5),c=R(im?e.cm:e.ci),o=R(im?(e.om||e.oi):e.oi),k=e.v+im+p+c[0]+o[0];if(seen2.has(k))continue;seen2.add(k);n++;
+const s=SJ[p],ya=im&&e.ya?"ya ":"",yaE=im&&e.ya?"already ":"",ng=e.neg?" no":"";
+M.push([`${c[0]}, ${s[0]}${ng} ${ya}___ ${o[0]}.`,`${c[1]}, ${s[1]} ${yaE}${im?e.em:e.ei} ${o[1]}.`,e[im?"m":"i"][p],e[im?"i":"m"][p],`${im?"Imperfect":"Indefinite"} ${e.v} = '${im?e.em:e.ei}'.`,`'${im?e.em:e.ei}' = ${im?"imperfect":"indefinite"}`])}
+})();
+Q.push(
+["Cuando llegué a casa, mi madre ___ la cena.","When I got home, my mom was cooking dinner.","cocinaba","cocinó","Action already in progress: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Estaba tan cansado que me ___ en el sofá.","I was so tired that I fell asleep on the sofa.","dormí","dormía","A result that happened once: indefinite.","Read the context: scene, interruption, or sequence?"],
+["No salimos porque ___ muchísimo.","We didn't go out because it was raining a lot.","llovía","llovió","Background reason: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Pablo ___ la puerta y entró sin decir nada.","Pablo opened the door and went in without a word.","abrió","abría","First step in a sequence: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mi tío ___ en Argentina, pero se mudó a España.","My uncle lived in Argentina, but he moved to Spain.","vivía","vivió","The setting before the change: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Ella ___ una carta cuando alguien tocó a la puerta.","She was writing a letter when someone knocked on the door.","escribía","escribió","Action interrupted by another: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Me caí porque el suelo ___ mojado.","I fell because the floor was wet.","estaba","estuvo","Describing a condition: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Vi a María y le ___ hola.","I saw María and said hi to her.","dije","decía","One quick action in a sequence: indefinite.","Read the context: scene, interruption, or sequence?"],
+["El profesor ___ muy enojado, así que nadie habló.","The teacher was very angry, so nobody spoke.","estaba","estuvo","His state explains why no one spoke: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Cuando me llamaste, ___ en la ducha.","When you called me, I was in the shower.","estaba","estuve","Situation when the call happened: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Se acabó la película y todos ___ del cine.","The movie ended and everyone left the theater.","salieron","salían","Next event in a sequence: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mi hermana ___ de miedo cuando vio la araña.","My sister screamed in fear when she saw the spider.","gritó","gritaba","A reaction to a single event: indefinite.","Read the context: scene, interruption, or sequence?"],
+["No lo compré porque ___ demasiado caro.","I didn't buy it because it was too expensive.","era","fue","Reason described as a quality: imperfect.","Read the context: scene, interruption, or sequence?"],
+["La casa ___ tranquila hasta que llegaron los niños.","The house was quiet until the kids arrived.","estaba","estuvo","Ongoing condition, broken by an event: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Subí al autobús justo cuando ___ a salir.","I got on the bus just as it was about to leave.","empezaba","empezó","Situation in progress when I acted: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Todos ___ cansados después del viaje, pero nadie quiso dormir.","Everyone was tired after the trip, but nobody wanted to sleep.","estaban","estuvieron","Describing their condition: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Apenas ___ el teléfono, supe que era mi madre.","As soon as I heard the phone, I knew it was my mom.","oí","oía","A single moment of hearing: indefinite.","Read the context: scene, interruption, or sequence?"],
+["El ladrón ___ por la ventana y huyó.","The thief came in through the window and fled.","entró","entraba","Completed actions in a chain: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Estaba oscuro y nadie ___ nada.","It was dark and nobody could see anything.","veía","vio","Ongoing state of the scene: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Ana me ___ que estaba enferma, por eso no vino.","Ana told me she was sick, that's why she didn't come.","dijo","decía","One act of telling: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Cuando me desperté, el sol ___ por la ventana.","When I woke up, the sun was coming through the window.","entraba","entró","Scene description: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Mis amigos y yo ___ una pizza y luego vimos una película.","My friends and I ordered a pizza and then watched a movie.","pedimos","pedíamos","First in a chain of completed actions: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mi padre ___ cuarenta años cuando nací yo.","My father was forty years old when I was born.","tenía","tuvo","Age is a description: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Me gustó el libro porque los personajes ___ muy reales.","I liked the book because the characters were very real.","eran","fueron","Describing qualities: imperfect.","Read the context: scene, interruption, or sequence?"],
+["La policía ___ al sospechoso y lo llevó a la comisaría.","The police arrested the suspect and took him to the station.","detuvo","detenía","Completed action in a sequence: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Salí del trabajo, ___ al coche y manejé a casa.","I left work, got in the car and drove home.","subí","subía","Step in a sequence: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Nadie ___ qué hacer, así que esperamos.","Nobody knew what to do, so we waited.","sabía","supo","A state of not knowing: imperfect.","Read the context: scene, interruption, or sequence?"],
+["El mesero nos ___ la cuenta y la pagamos.","The waiter brought us the check and we paid it.","trajo","traía","One completed action: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Ellos ___ cenando cuando se fue la luz.","They were having dinner when the power went out.","estaban","estuvieron","Action in progress when it was interrupted: imperfect.","Read the context: scene, interruption, or sequence?"],
+["La puerta ___ cerrada, así que tuve que llamar.","The door was locked, so I had to knock.","estaba","estuvo","Describing the situation: imperfect.","Read the context: scene, interruption, or sequence?"]
+);
+M.push(
+["Mi primo y yo nos ___ en una boda.","My cousin and I met at a wedding.","conocimos","conocíamos","Conocer = 'met' for the first time: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Yo ___ a su hermano, así que lo reconocí enseguida.","I knew his brother, so I recognized him right away.","conocía","conocí","Conocer = 'knew' (already familiar): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Al abrir la carta, ___ la verdad.","When I opened the letter, I found out the truth.","supe","sabía","Saber = 'found out' at a moment: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Todos ___ el secreto, pero nadie dijo nada.","Everyone knew the secret, but nobody said anything.","sabían","supieron","Saber = 'knew' (a state): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Le pedí ayuda, pero él no ___ ayudarme.","I asked him for help, but he refused to help me.","quiso","quería","Negative querer = 'refused': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Yo no ___ ir, pero mis padres me obligaron.","I didn't want to go, but my parents made me.","quería","quise","Querer = 'wanted' (a feeling): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Intenté levantar la caja y por fin ___ levantarla.","I tried to lift the box and finally managed to lift it.","pude","podía","Poder = 'managed to': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Era muy fuerte: ___ levantar cien kilos.","He was very strong: he could lift a hundred kilos.","podía","pudo","Poder = 'was able to' (ability): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Al ver la nota, ___ mucho miedo.","On seeing the note, I got very scared.","tuve","tenía","Tener = 'got / became': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mi vecino ___ un perro enorme que ladraba toda la noche.","My neighbor had a huge dog that barked all night.","tenía","tuvo","Tener = 'had' (a possession): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Hablé con ella y ___ que se mudaba.","I talked to her and found out that she was moving.","supe","sabía","Saber = 'found out': indefinite.","Read the context: scene, interruption, or sequence?"],
+["No ___ que estabas aquí; si no, te habría llamado.","I didn't know you were here; otherwise, I would have called you.","sabía","supe","Saber = 'knew' (a state): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Nunca ___ a mi abuelo; murió antes de que yo naciera.","I never met my grandfather; he died before I was born.","conocí","conocía","'Never met' = indefinite.","Read the context: scene, interruption, or sequence?"],
+["Intenté abrir la puerta, pero no ___.","I tried to open the door, but I couldn't.","pude","podía","Negative poder = tried and failed: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Él ___ ayudarnos, pero estaba demasiado ocupado.","He wanted to help us, but he was too busy.","quería","quiso","Querer = 'wanted' (a state): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Después de la entrevista, ___ una llamada con la oferta.","After the interview, I got a call with the offer.","tuve","tenía","Tener = 'got / received': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mi hermana ___ a su esposo en la universidad.","My sister met her husband at the university.","conoció","conocía","Conocer = 'met': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Yo ___ el resultado, pero fingí sorpresa.","I knew the result, but I pretended to be surprised.","sabía","supe","Saber = 'knew': imperfect.","Read the context: scene, interruption, or sequence?"],
+["Ellos ___ salir, pero la puerta estaba cerrada.","They wanted to go out, but the door was locked.","querían","quisieron","Querer = 'wanted': imperfect.","Read the context: scene, interruption, or sequence?"],
+["Aunque ___ mucho dinero, era infeliz.","Although he had a lot of money, he was unhappy.","tenía","tuvo","Tener = 'had' (a state): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Nadie ___ resolver el acertijo, hasta que Ana lo logró.","Nobody could solve the riddle until Ana did.","podía","pudo","Poder = 'was able to' (ongoing inability): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Por teléfono ___ que habían ganado.","On the phone we found out that they had won.","supimos","sabíamos","Saber = 'found out': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Tú ___ la respuesta, ¿por qué no la dijiste?","You knew the answer, why didn't you say it?","sabías","supiste","Saber = 'knew': imperfect.","Read the context: scene, interruption, or sequence?"],
+["Mis padres no ___ que me fuera, pero me fui igual.","My parents didn't want me to leave, but I left anyway.","querían","quisieron","Querer = 'wanted' (a state): imperfect.","Read the context: scene, interruption, or sequence?"],
+["El vecino ___ una fiesta enorme que no nos dejó dormir.","The neighbor had a huge party that didn't let us sleep.","tuvo","tenía","Tener = 'had (an event)': indefinite.","Read the context: scene, interruption, or sequence?"]
+);
+Q.push(
+["Yo ___ un libro cuando se fue la luz.","I was reading a book when the power went out.","leía","leí","Action in progress when it was interrupted: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Entramos al cine, ___ las entradas y buscamos asiento.","We went into the theater, showed our tickets and looked for a seat.","mostramos","mostrábamos","A step in a chain of actions: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mi abuela ___ el pelo largo y negro.","My grandmother had long, black hair.","tenía","tuvo","Physical description: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Tomás ___ el balón y marcó un gol.","Tomás picked up the ball and scored a goal.","recogió","recogía","First action in a sequence: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Había mucho ruido porque los vecinos ___ una fiesta.","There was a lot of noise because the neighbors were having a party.","hacían","hicieron","The ongoing situation behind the noise: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Sonó la alarma y me ___ de un salto.","The alarm rang and I jumped out of bed.","levanté","levantaba","Immediate reaction to an event: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Nos ___ perdidos, así que pedimos ayuda.","We felt lost, so we asked for help.","sentíamos","sentimos","A feeling or state: imperfect.","Read the context: scene, interruption, or sequence?"],
+["El tren ___ y nosotros subimos.","The train arrived and we got on.","llegó","llegaba","Event followed by another event: indefinite.","Read the context: scene, interruption, or sequence?"],
+["La sala ___ llena de gente cuando entró el presidente.","The room was full of people when the president came in.","estaba","estuvo","Scene already in place when something happened: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Mi madre me ___ un abrazo y me dio las gracias.","My mom gave me a hug and thanked me.","dio","daba","Completed actions in a pair: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Los turistas ___ fotos del castillo cuando empezó la lluvia.","The tourists were taking photos of the castle when the rain started.","sacaban","sacaron","Action in progress, then interrupted: imperfect.","Read the context: scene, interruption, or sequence?"],
+["La profesora ___ la pizarra y empezó la clase.","The teacher erased the board and class began.","borró","borraba","One action leading to the next: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Ella ___ nerviosa y no podía hablar.","She was nervous and couldn't speak.","estaba","estuvo","A state, with a second state alongside it: imperfect.","Read the context: scene, interruption, or sequence?"],
+["El perro ___ y todos se despertaron.","The dog barked and everyone woke up.","ladró","ladraba","The event that caused a reaction: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mi abuelo ___ muy alto y delgado.","My grandfather was very tall and thin.","era","fue","Physical description: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Dejé el libro en la mesa y ___ al jardín.","I left the book on the table and went out to the garden.","salí","salía","Chain of completed actions: indefinite.","Read the context: scene, interruption, or sequence?"],
+["El bebé ___ en su cuna cuando llegamos.","The baby was sleeping in his crib when we arrived.","dormía","durmió","What was in progress when we arrived: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Le ___ la mano y me presenté.","I shook his hand and introduced myself.","estreché","estrechaba","One action followed by another: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Todo ___ tranquilo en el pueblo; no se oía ni un ruido.","Everything was calm in the town; not a sound could be heard.","estaba","estuvo","Describing the atmosphere: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Los bomberos ___ al edificio y apagaron el fuego.","The firefighters reached the building and put out the fire.","llegaron","llegaban","Sequence of completed events: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Yo ___ sentado junto a la ventana y miraba la lluvia.","I was sitting by the window watching the rain.","estaba","estuve","Setting the scene with a second ongoing action: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Pedro ___ el examen y salió contento.","Pedro finished the exam and left happy.","terminó","terminaba","One finished event then another: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mi coche no ___, así que tomé un taxi.","My car wasn't working, so I took a taxi.","funcionaba","funcionó","The condition that led to my choice: imperfect.","Read the context: scene, interruption, or sequence?"],
+["El cielo ___ gris y amenazaba lluvia.","The sky was gray and threatened rain.","estaba","estuvo","Describing the sky: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Ellos se ___ y decidieron casarse.","They fell in love and decided to get married.","enamoraron","enamoraban","A change that happened, followed by a decision: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Alguien ___ el cristal y entró en la casa.","Someone broke the glass and entered the house.","rompió","rompía","One action then another: indefinite.","Read the context: scene, interruption, or sequence?"],
+["El hombre que ___ en la esquina parecía perdido.","The man who was waiting on the corner seemed lost.","esperaba","esperó","Describing what he was doing: imperfect.","Read the context: scene, interruption, or sequence?"],
+["Marta ___ el regalo y se puso muy contenta.","Marta opened the gift and became very happy.","abrió","abría","Event followed by a reaction: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mi primo ___ doce años y ya jugaba muy bien.","My cousin was twelve and already played very well.","tenía","tuvo","Age and ability as description: imperfect.","Read the context: scene, interruption, or sequence?"]
+);
+M.push(
+["Empujé con todas mis fuerzas y ___ mover la piedra.","I pushed with all my strength and managed to move the stone.","pude","podía","Poder = 'managed to': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Su voz me sonaba familiar; creo que la ___.","Her voice sounded familiar to me; I think I knew it.","conocía","conocí","Conocer = 'knew': imperfect.","Read the context: scene, interruption, or sequence?"],
+["En la fiesta de Lola ___ a su novio.","At Lola's party I met her boyfriend.","conocí","conocía","Conocer = 'met': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mis abuelos ___ muy poco dinero, pero eran felices.","My grandparents had very little money, but they were happy.","tenían","tuvieron","Tener = 'had' (a state): imperfect.","Read the context: scene, interruption, or sequence?"],
+["El ruido era tan fuerte que no ___ oír nada.","The noise was so loud that we couldn't hear anything.","podíamos","pudimos","Poder = 'could' (a condition): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Revisé el correo y ___ que me habían aceptado.","I checked my email and found out I had been accepted.","supe","sabía","Saber = 'found out': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Ella no ___ salir con nosotros; prefería quedarse en casa.","She didn't want to go out with us; she preferred to stay home.","quería","quiso","Querer = 'wanted' (a feeling): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Le ofrecí dinero, pero no lo ___ aceptar.","I offered him money, but he refused to accept it.","quiso","quería","Negative querer = 'refused': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Me dormí y ___ una pesadilla horrible.","I fell asleep and had a horrible nightmare.","tuve","tenía","Tener = 'had (an experience)': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Nosotros ___ la respuesta correcta, pero no levantamos la mano.","We knew the right answer, but we didn't raise our hands.","sabíamos","supimos","Saber = 'knew': imperfect.","Read the context: scene, interruption, or sequence?"],
+["Cuando me presentaron a su padre, ya lo ___.","When they introduced me to her father, I already knew him.","conocía","conocí","Conocer = 'knew' (already familiar): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Giré la llave y la puerta se abrió: ___ entrar.","I turned the key and the door opened: I was able to get in.","pude","podía","Poder = 'managed / was able to' on one occasion: indefinite.","Read the context: scene, interruption, or sequence?"],
+["Escuché al jefe y ___ que me despedían.","I listened to the boss and found out I was being fired.","supe","sabía","Saber = 'found out': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Mi hermano ___ muchos amigos en el colegio.","My brother had a lot of friends at school.","tenía","tuvo","Tener = 'had' (a situation): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Tú ___ mi dirección, ¿verdad? Por eso llegaste.","You knew my address, right? That's why you came.","sabías","supiste","Saber = 'knew': imperfect.","Read the context: scene, interruption, or sequence?"],
+["Llegué a la reunión y ___ al nuevo director.","I got to the meeting and met the new director.","conocí","conocía","Conocer = 'met': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Él ___ venir a la fiesta, pero tuvo que trabajar.","He wanted to come to the party, but he had to work.","quería","quiso","Querer = 'wanted': imperfect.","Read the context: scene, interruption, or sequence?"],
+["Mi madre ___ cocinar de maravilla; todos lo decían.","My mom could cook wonderfully; everyone said so.","podía","pudo","Poder = 'could' (an ability): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Abrí el sobre y ___ una sorpresa: era una invitación.","I opened the envelope and got a surprise: it was an invitation.","tuve","tenía","Tener = 'got': indefinite.","Read the context: scene, interruption, or sequence?"],
+["No ___ quién era hasta que se quitó la máscara.","I didn't know who it was until he took off the mask.","sabía","supe","Saber = 'knew' (a state until a point): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Los dos ___ muchas ganas de ir, pero se quedaron en casa.","Both of them really wanted to go, but they stayed home.","tenían","tuvieron","Tener = 'had' (a state of wanting): imperfect.","Read the context: scene, interruption, or sequence?"],
+["Intentamos convencerlo, pero no ___ cambiar de opinión.","We tried to convince him, but he refused to change his mind.","quiso","quería","Negative querer = 'refused': indefinite.","Read the context: scene, interruption, or sequence?"],
+["El corredor ___ llegar a la meta, aunque estaba agotado.","The runner managed to reach the finish line, although he was exhausted.","pudo","podía","Poder = 'managed to': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Una vecina me dijo su nombre y así ___ quién era.","A neighbor told me her name and that's how I found out who she was.","supe","sabía","Saber = 'found out': indefinite.","Read the context: scene, interruption, or sequence?"],
+["Al leer el mensaje, ___ unas ganas enormes de llorar.","On reading the message, I got an enormous urge to cry.","tuve","tenía","Tener = 'got (a sudden feeling)': indefinite.","Read the context: scene, interruption, or sequence?"]
+);
+function story(t,items){return items.map((it,k)=>{
+let x=t.replace(/\{(\d)\}/g,(m,d)=>{d=+d;return d<k?"<b>"+items[d][0]+"</b>":d===k?"<u>___</u>":"___"});
+return [x,"",it[0],it[1],it[2],"Setting the scene or ongoing? Or one finished event?",it[3]]})}
+const ST=[].concat(
+story("Cuando {0} (ser) niño, mi familia {1} (vivir) en un pueblo pequeño. Un día de verano, mientras mi padre {2} (reparar) el coche, yo {3} (encontrar) un perro perdido. {4} (hacer) mucho calor, así que le {5} (dar) agua.",[
+["era","fui","Describing yourself as a child: imperfect.","Cuando <b>era</b> niño"],
+["vivía","vivió","Where the family lived over a period: imperfect.","mi familia <b>vivía</b>"],
+["reparaba","reparó","Ongoing action in the background ('mientras'): imperfect.","mi padre <b>reparaba</b>"],
+["encontré","encontraba","A single event that happened: indefinite.","yo <b>encontré</b> un perro"],
+["Hacía","Hizo","Weather is scenery: imperfect.","<b>Hacía</b> mucho calor"],
+["di","daba","One completed action: indefinite.","le <b>di</b> agua"]]),
+story("Anoche {0} (llegar) tarde a casa. Todas las luces {1} (estar) apagadas y {2} (hacer) mucho silencio. {3} (abrir) la puerta y {4} (oír) un ruido extraño. Mi gato {5} (jugar) con una bolsa.",[
+["llegué","llegaba","A single event with 'anoche': indefinite.","<b>llegué</b> tarde"],
+["estaban","estuvieron","Describing the scene: imperfect.","las luces <b>estaban</b> apagadas"],
+["hacía","hizo","Describing the atmosphere: imperfect.","<b>hacía</b> mucho silencio"],
+["Abrí","Abría","A completed action in a chain of events: indefinite.","<b>Abrí</b> la puerta"],
+["oí","oía","One sudden event: indefinite.","<b>oí</b> un ruido"],
+["jugaba","jugó","What the cat was doing at that moment: imperfect.","mi gato <b>jugaba</b>"]]),
+story("Cuando {0} (tener) diez años, mi abuela {1} (vivir) con nosotros. Todas las mañanas {2} (preparar) pan. Un día {3} (caer) en la cocina y se {4} (romper) el brazo. {5} (estar) en el hospital tres días.",[
+["tenía","tuve","Age is a description: imperfect.","Cuando <b>tenía</b> diez años"],
+["vivía","vivió","An ongoing situation: imperfect.","mi abuela <b>vivía</b> con nosotros"],
+["preparaba","preparó","'Todas las mañanas' = habit: imperfect.","<b>preparaba</b> pan"],
+["se cayó","se caía","A single event ('un día'): indefinite.","Un día <b>se cayó</b>"],
+["rompió","rompía","One finished event: indefinite.","se <b>rompió</b> el brazo"],
+["Estuvo","Estaba","A set length of time, now over: indefinite.","<b>Estuvo</b> en el hospital tres días"]]),
+story("Era una noche fría. Yo {0} (estar) en casa cuando {1} (sonar) el teléfono. {2} (ser) mi amiga Laura. Ella {3} (llorar) y me {4} (decir) que {5} (querer) hablar.",[
+["estaba","estuve","Where you were when something happened: imperfect.","Yo <b>estaba</b> en casa"],
+["sonó","sonaba","The interrupting event: indefinite.","<b>sonó</b> el teléfono"],
+["Era","Fue","Identifying who it was, as part of the scene: imperfect.","<b>Era</b> mi amiga Laura"],
+["lloraba","lloró","An ongoing state while she talked: imperfect.","Ella <b>lloraba</b>"],
+["dijo","decía","One finished action: indefinite.","me <b>dijo</b> que"],
+["quería","quiso","A desire, a state of mind: imperfect.","<b>quería</b> hablar"]]),
+story("Ayer {0} (hacer) mucho viento. Yo {1} (ir) a la escuela cuando {2} (ver) a mi amigo Tomás. Él {3} (llevar) una mochila roja y {4} (parecer) muy feliz. Nosotros {5} (caminar) juntos hasta la clase.",[
+["hacía","hizo","Weather is scenery: imperfect.","Ayer <b>hacía</b> mucho viento"],
+["iba","fui","Action in progress when something happens: imperfect.","yo <b>iba</b> a la escuela"],
+["vi","veía","A single event that interrupts: indefinite.","<b>vi</b> a mi amigo"],
+["llevaba","llevó","Describing what he was wearing: imperfect.","Él <b>llevaba</b> una mochila"],
+["parecía","pareció","Describing how he looked: imperfect.","<b>parecía</b> muy feliz"],
+["caminamos","caminábamos","A completed walk with an endpoint: indefinite.","<b>caminamos</b> juntos hasta la clase"]]),
+story("El verano pasado mi familia y yo {0} (viajar) a la playa. {1} (haber) mucho sol y el agua {2} (estar) tibia. Todos los días {3} (nadar) por la mañana. Una tarde mi hermano {4} (perder) sus gafas en el mar. Las {5} (buscar) una hora y no las encontramos.",[
+["viajamos","viajábamos","A completed trip: indefinite.","<b>viajamos</b> a la playa"],
+["Había","Hubo","Describing the weather and scene: imperfect.","<b>Había</b> mucho sol"],
+["estaba","estuvo","Describing the water: imperfect.","el agua <b>estaba</b> tibia"],
+["nadábamos","nadamos","'Todos los días' = habit: imperfect.","<b>nadábamos</b> por la mañana"],
+["perdió","perdía","One sudden event: indefinite.","mi hermano <b>perdió</b> sus gafas"],
+["buscamos","buscábamos","A set length of time, then it ended: indefinite.","Las <b>buscamos</b> una hora"]]),
+story("Anoche {0} (cenar) en un restaurante nuevo. El lugar {1} (ser) pequeño y {2} (tener) música suave. Mientras nosotros {3} (esperar) la comida, un camarero {4} (dejar) caer un vaso. Todos {5} (reír).",[
+["cenamos","cenábamos","One finished event with 'anoche': indefinite.","<b>cenamos</b> en un restaurante"],
+["era","fue","Describing the place: imperfect.","El lugar <b>era</b> pequeño"],
+["tenía","tuvo","Describing the atmosphere: imperfect.","<b>tenía</b> música suave"],
+["esperábamos","esperamos","Ongoing action ('mientras'): imperfect.","nosotros <b>esperábamos</b>"],
+["dejó","dejaba","A sudden single event: indefinite.","un camarero <b>dejó</b> caer un vaso"],
+["rieron","reían","A single reaction to the event: indefinite.","Todos <b>rieron</b>"]]),
+story("Cuando {0} (ser) joven, yo {1} (visitar) a mis abuelos cada verano. Su casa {2} (estar) cerca de un río. Un verano {3} (haber) una inundación y el río {4} (llegar) hasta la puerta. Mi abuelo nos {5} (llevar) a casa de un vecino.",[
+["era","fui","Describing yourself at a stage of life: imperfect.","Cuando <b>era</b> joven"],
+["visitaba","visité","'Cada verano' = habit: imperfect.","yo <b>visitaba</b> a mis abuelos"],
+["estaba","estuvo","Location as description: imperfect.","Su casa <b>estaba</b> cerca de un río"],
+["hubo","había","'Un verano' + something that happened: indefinite.","Un verano <b>hubo</b> una inundación"],
+["llegó","llegaba","The river reached the door: one event: indefinite.","el río <b>llegó</b> hasta la puerta"],
+["llevó","llevaba","One completed action: indefinite.","Mi abuelo nos <b>llevó</b>"]]),
+story("Ayer {0} (ser) mi primer día de trabajo. Yo {1} (estar) muy nervioso porque no {2} (conocer) a nadie. Me {3} (levantar) a las seis, {4} (tomar) un café y {5} (salir) corriendo.",[
+["fue","era","A specific day, treated as one event: indefinite.","Ayer <b>fue</b> mi primer día"],
+["estaba","estuve","Describing a feeling: imperfect.","yo <b>estaba</b> muy nervioso"],
+["conocía","conocí","Imperfect conocer = 'knew' (a state).","no <b>conocía</b> a nadie"],
+["levanté","levantaba","First in a chain of finished actions: indefinite.","Me <b>levanté</b> a las seis"],
+["tomé","tomaba","Second action in the chain: indefinite.","<b>tomé</b> un café"],
+["salí","salía","Third action in the chain: indefinite.","<b>salí</b> corriendo"]]),
+story("Eran las tres de la mañana. {0} (llover) mucho y no {1} (haber) nadie en la calle. De pronto, un hombre {2} (aparecer) en la esquina. {3} (llevar) un abrigo negro. Yo {4} (tener) miedo, pero {5} (decidir) seguir caminando.",[
+["Llovía","Llovió","Weather sets the scene: imperfect.","<b>Llovía</b> mucho"],
+["había","hubo","Describing the scene: imperfect.","no <b>había</b> nadie"],
+["apareció","aparecía","'De pronto' = a sudden event: indefinite.","un hombre <b>apareció</b>"],
+["Llevaba","Llevó","Describing what he wore: imperfect.","<b>Llevaba</b> un abrigo negro"],
+["tenía","tuve","A feeling that was ongoing: imperfect.","Yo <b>tenía</b> miedo"],
+["decidí","decidía","A decision made in one moment: indefinite.","pero <b>decidí</b> seguir"]]),story("Cuando {0} (ser) niña, yo {1} (tener) un gato que se llamaba Max. Una noche, {2} (haber) una tormenta fuerte y Max {3} (esconderse) debajo de mi cama. Yo lo {4} (abrazar) toda la noche y los dos nos {5} (quedar) dormidos.",[
+["era","fui","Describing yourself at an age: imperfect.","Cuando <b>era</b> niña"],
+["tenía","tuve","Having a pet is an ongoing state: imperfect.","yo <b>tenía</b> un gato"],
+["hubo","había","'Una noche' + an event: indefinite.","Una noche <b>hubo</b> una tormenta"],
+["se escondió","se escondía","One finished action: indefinite.","Max <b>se escondió</b>"],
+["abracé","abrazaba","A bounded stretch of time ('toda la noche'): indefinite.","lo <b>abracé</b> toda la noche"],
+["quedamos","quedábamos","One completed result: indefinite.","nos <b>quedamos</b> dormidos"]]),
+story("El sábado pasado {0} (jugar) un partido importante. {1} (ser) las cuatro de la tarde y {2} (hacer) calor. Nuestro equipo {3} (perder) 1 a 0 hasta el último minuto. Entonces yo {4} (marcar) un gol y todos {5} (gritar) de alegría.",[
+["jugamos","jugábamos","One specific game: indefinite.","<b>jugamos</b> un partido"],
+["Eran","Fueron","Telling the time: imperfect.","<b>Eran</b> las cuatro"],
+["hacía","hizo","Weather: imperfect.","<b>hacía</b> calor"],
+["perdía","perdió","The situation as it stood until the last minute: imperfect.","nuestro equipo <b>perdía</b>"],
+["marqué","marcaba","A single event: indefinite.","yo <b>marqué</b> un gol"],
+["gritaron","gritaban","A reaction to that event: indefinite.","todos <b>gritaron</b>"]]),
+story("Ayer {0} (perder) mi cartera. {1} (estar) en el centro y {2} (llover). Yo {3} (buscar) en todas partes cuando un señor me {4} (llamar). Él {5} (tener) mi cartera en la mano.",[
+["perdí","perdía","One finished event: indefinite.","<b>perdí</b> mi cartera"],
+["Estaba","Estuve","Where you were, as scene-setting: imperfect.","<b>Estaba</b> en el centro"],
+["llovía","llovió","Weather in the background: imperfect.","<b>llovía</b>"],
+["buscaba","busqué","Ongoing action interrupted: imperfect.","yo <b>buscaba</b>"],
+["llamó","llamaba","The interrupting event: indefinite.","un señor me <b>llamó</b>"],
+["tenía","tuvo","Describing what he was holding: imperfect.","Él <b>tenía</b> mi cartera"]]),
+story("En 2018 mi familia {0} (mudarse) a Chicago. Antes, nosotros {1} (vivir) en una ciudad pequeña. Mi madre {2} (querer) un trabajo mejor. El primer día, yo {3} (conocer) a una vecina simpática. Ella {4} (tener) quince años como yo y {5} (ser) muy amable.",[
+["se mudó","se mudaba","A specific moved-in event ('en 2018'): indefinite.","<b>se mudó</b> a Chicago"],
+["vivíamos","vivimos","An ongoing situation in the past: imperfect.","<b>vivíamos</b> en una ciudad pequeña"],
+["quería","quiso","A desire (state of mind): imperfect.","<b>quería</b> un trabajo mejor"],
+["conocí","conocía","Conocer = 'met' on a specific day: indefinite.","<b>conocí</b> a una vecina"],
+["tenía","tuvo","Age is a description: imperfect.","<b>tenía</b> quince años"],
+["era","fue","Describing personality: imperfect.","<b>era</b> muy amable"]]),
+story("Anoche {0} (ir) a una fiesta. Todos {1} (bailar) y la música {2} (sonar) muy fuerte. A las doce, alguien {3} (apagar) las luces. Nadie {4} (saber) qué pasaba, pero poco después {5} (volver) la luz.",[
+["fui","iba","One completed outing: indefinite.","<b>fui</b> a una fiesta"],
+["bailaban","bailaron","Ongoing background action: imperfect.","todos <b>bailaban</b>"],
+["sonaba","sonó","Ongoing background: imperfect.","la música <b>sonaba</b>"],
+["apagó","apagaba","A sudden event ('a las doce'): indefinite.","alguien <b>apagó</b> las luces"],
+["sabía","supo","A state of not knowing: imperfect.","nadie <b>sabía</b>"],
+["volvió","volvía","A single event: indefinite.","<b>volvió</b> la luz"]]),
+story("Cuando {0} (ser) pequeños, mi hermano y yo {1} (acampar) cada verano. Una vez, {2} (empezar) a llover de noche. La tienda {3} (estar) vieja y el agua {4} (entrar) por todos lados. Mi papá {5} (levantarse) y nos llevó al coche.",[
+["éramos","fuimos","Describing yourselves at an age: imperfect.","Cuando <b>éramos</b> pequeños"],
+["acampábamos","acampamos","'Cada verano' = habit: imperfect.","<b>acampábamos</b> cada verano"],
+["empezó","empezaba","'Una vez' + a single event: indefinite.","Una vez <b>empezó</b> a llover"],
+["estaba","estuvo","Describing the tent: imperfect.","la tienda <b>estaba</b> vieja"],
+["entraba","entró","Ongoing, all over the place: imperfect.","el agua <b>entraba</b>"],
+["se levantó","se levantaba","One action in the sequence: indefinite.","Mi papá <b>se levantó</b>"]]),
+story("Ayer {0} (ser) el cumpleaños de mi mamá. Nosotros {1} (preparar) una sorpresa. Ella {2} (llegar) a casa a las seis y {3} (ver) la mesa llena de comida. {4} (haber) globos por todas partes. Ella {5} (llorar) de emoción.",[
+["fue","era","A specific day as one event: indefinite.","Ayer <b>fue</b> el cumpleaños"],
+["preparamos","preparábamos","A finished task: indefinite.","<b>preparamos</b> una sorpresa"],
+["llegó","llegaba","A specific arrival ('a las seis'): indefinite.","ella <b>llegó</b> a casa"],
+["vio","veía","A single moment of seeing: indefinite.","<b>vio</b> la mesa"],
+["Había","Hubo","Describing the scene: imperfect.","<b>Había</b> globos"],
+["lloró","lloraba","A single emotional reaction: indefinite.","Ella <b>lloró</b> de emoción"]]),story("Lucía {0} (abrir) el paraguas porque {1} (llover). Entonces {2} (ver) a un niño en la parada. Él {3} (estar) empapado y {4} (temblar). Lucía se lo {5} (ofrecer) sin dudar.",[
+["abrió","abría","A completed action: indefinite.","Lucía <b>abrió</b> el paraguas"],
+["llovía","llovió","Weather as the reason: imperfect.","porque <b>llovía</b>"],
+["vio","veía","A single moment of noticing: indefinite.","<b>vio</b> a un niño"],
+["estaba","estuvo","Describing his state: imperfect.","Él <b>estaba</b> empapado"],
+["temblaba","tembló","Ongoing state: imperfect.","<b>temblaba</b>"],
+["ofreció","ofrecía","One decisive action: indefinite.","se lo <b>ofreció</b>"]]),
+story("El detective {0} (entrar) en la sala. Nadie {1} (hablar). La ventana {2} (estar) abierta y las cortinas {3} (moverse) con el viento. Él {4} (notar) una huella en el suelo y {5} (sacar) su cámara.",[
+["entró","entraba","A single action that starts the scene: indefinite.","<b>entró</b> en la sala"],
+["hablaba","habló","The silence that was the situation: imperfect.","Nadie <b>hablaba</b>"],
+["estaba","estuvo","Describing the room: imperfect.","la ventana <b>estaba</b> abierta"],
+["se movían","se movieron","Ongoing background motion: imperfect.","las cortinas <b>se movían</b>"],
+["notó","notaba","A moment of noticing: indefinite.","Él <b>notó</b> una huella"],
+["sacó","sacaba","Next action in a chain: indefinite.","<b>sacó</b> su cámara"]]),
+story("Mi hermano {0} (ser) muy tímido, pero decidió hablar con ella. Ella {1} (leer) en el parque. Él {2} (acercarse) y le {3} (preguntar) por el libro. Ella {4} (sonreír) y los dos {5} (hablar) hasta que anocheció.",[
+["era","fue","Describing his personality: imperfect.","Mi hermano <b>era</b> muy tímido"],
+["leía","leyó","What she was doing when he arrived: imperfect.","Ella <b>leía</b> en el parque"],
+["se acercó","se acercaba","One action in the sequence: indefinite.","Él <b>se acercó</b>"],
+["preguntó","preguntaba","Next action: indefinite.","le <b>preguntó</b> por el libro"],
+["sonrió","sonreía","A reaction: indefinite.","Ella <b>sonrió</b>"],
+["hablaron","hablaban","Bounded by 'hasta que anocheció': indefinite.","los dos <b>hablaron</b>"]]),
+story("La casa {0} (ser) vieja y {1} (tener) un jardín enorme. Los niños {2} (encontrar) una caja en el sótano. Dentro {3} (haber) fotos antiguas. Mi madre las {4} (mirar) y {5} (empezar) a llorar.",[
+["era","fue","Describing the house: imperfect.","La casa <b>era</b> vieja"],
+["tenía","tuvo","What the house had: imperfect.","<b>tenía</b> un jardín enorme"],
+["encontraron","encontraban","A discovery: indefinite.","los niños <b>encontraron</b> una caja"],
+["había","hubo","Describing what was inside: imperfect.","<b>había</b> fotos antiguas"],
+["miró","miraba","A completed action: indefinite.","Mi madre las <b>miró</b>"],
+["empezó","empezaba","A sudden reaction: indefinite.","<b>empezó</b> a llorar"]]),story("El autobús {0} (llegar) lleno. Yo {1} (buscar) un asiento, pero no {2} (haber) ninguno. Un señor mayor me {3} (ver) y se {4} (levantar). Yo le {5} (dar) las gracias.",[
+["llegó","llegaba","A single arrival: indefinite.","El autobús <b>llegó</b> lleno"],
+["buscaba","busqué","What I was trying to do as the scene went on: imperfect.","yo <b>buscaba</b> un asiento"],
+["había","hubo","Describing what was available: imperfect.","no <b>había</b> ninguno"],
+["vio","veía","A moment of noticing: indefinite.","un señor me <b>vio</b>"],
+["levantó","levantaba","His reaction: indefinite.","se <b>levantó</b>"],
+["di","daba","A completed action: indefinite.","le <b>di</b> las gracias"]]),
+story("La abuela {0} (cocinar) en la cocina y la casa {1} (oler) a canela. Los niños {2} (jugar) afuera. Sonó el teléfono. La abuela {3} (contestar) y {4} (ponerse) pálida. Nadie {5} (saber) qué pasaba.",[
+["cocinaba","cocinó","Ongoing background action: imperfect.","La abuela <b>cocinaba</b>"],
+["olía","olió","Describing the atmosphere: imperfect.","la casa <b>olía</b> a canela"],
+["jugaban","jugaron","Ongoing background action: imperfect.","los niños <b>jugaban</b>"],
+["contestó","contestaba","A response to the phone ringing: indefinite.","la abuela <b>contestó</b>"],
+["se puso","se ponía","A sudden change: indefinite.","<b>se puso</b> pálida"],
+["sabía","supo","A state of not knowing: imperfect.","nadie <b>sabía</b>"]]),
+story("Marcos {0} (estar) enfermo y no {1} (querer) comer. Su madre le {2} (preparar) una sopa. Él la {3} (probar) y {4} (decir) que {5} (estar) deliciosa.",[
+["estaba","estuvo","Describing his condition: imperfect.","Marcos <b>estaba</b> enfermo"],
+["quería","quiso","A state of not wanting: imperfect.","no <b>quería</b> comer"],
+["preparó","preparaba","A completed action: indefinite.","le <b>preparó</b> una sopa"],
+["probó","probaba","One action in a chain: indefinite.","la <b>probó</b>"],
+["dijo","decía","Next action in the chain: indefinite.","<b>dijo</b> que"],
+["estaba","estuvo","Describing the soup: imperfect.","<b>estaba</b> deliciosa"]]),
+story("Yo {0} (caminar) por el bosque. Los pájaros {1} (cantar) y el aire {2} (ser) fresco. Oí un ruido extraño detrás de mí. Me {3} (dar) la vuelta y {4} (ver) un ciervo. El ciervo me {5} (mirar) un momento y desapareció.",[
+["caminaba","caminé","What was going on as the scene opened: imperfect.","Yo <b>caminaba</b>"],
+["cantaban","cantaron","Background sound: imperfect.","los pájaros <b>cantaban</b>"],
+["era","fue","Describing the air: imperfect.","el aire <b>era</b> fresco"],
+["di","daba","A single quick action: indefinite.","Me <b>di</b> la vuelta"],
+["vi","veía","A moment of noticing: indefinite.","<b>vi</b> un ciervo"],
+["miró","miraba","A brief completed action, then it left: indefinite.","el ciervo me <b>miró</b>"]])
+);
+const $=id=>document.getElementById(id);
+let order,i,score,missed,pos,mode="basics";
+function shuffle(a){a=a.slice();for(let j=a.length-1;j>0;j--){const k=Math.floor(Math.random()*(j+1));[a[j],a[k]]=[a[k],a[j]]}return a}
+const HF="Read the context: scene, interruption, or sequence?";
+function mix(a){const f=a.filter(q=>q[5]===HF),c=a.filter(q=>q[5]!==HF),n=Math.min(f.length,c.length);return shuffle(shuffle(f).slice(0,n).concat(shuffle(c).slice(0,n)))}
+function mixStories(){const g=[];for(let k=0;k<ST.length;k+=6)g.push(ST.slice(k,k+6));const f=g.filter((_,j)=>j*6>=102),c=g.filter((_,j)=>j*6<102);return shuffle(f.concat(shuffle(c).slice(0,f.length))).flat()}
+function start(){order=mode==="story"?mixStories():mix(mode==="verbs"?M:Q);document.querySelectorAll("#modes button").forEach(b=>b.classList.toggle("on",b.dataset.m===mode));i=0;score=0;missed=[];pos=shuffle(order.map((_,k)=>k%2===0));$("done").hidden=true;$("quiz").hidden=false;show()}
+function show(){
+const q=order[i];
+$("num").textContent="Question "+(i+1)+" of "+order.length;
+$("score").textContent="Score: "+score;
+$("prog").style.width=(i/order.length*100)+"%";
+$("sent").innerHTML=q[0];$("en").textContent=q[1];$("en").hidden=!q[1];
+$("fb").hidden=true;$("next").hidden=true;$("hint").hidden=true;$("hintBtn").hidden=false;
+$("hint").textContent=q[5];
+const o=$("opts");o.innerHTML="";
+(pos[i]?[q[2],q[3]]:[q[3],q[2]]).forEach(t=>{
+const b=document.createElement("button");b.textContent=t;
+b.onclick=()=>answer(b,t);o.appendChild(b)});
+}
+function answer(btn,t){
+const q=order[i],ok=t===q[2];
+[...$("opts").children].forEach(b=>{b.disabled=true;if(b.textContent===q[2])b.classList.add("right")});
+if(ok)score++;else{btn.classList.add("wrong");missed.push(q)}
+$("score").textContent="Score: "+score;
+$("fb").innerHTML='<span class="t" style="color:var(--'+(ok?'ok':'bad')+')">'+(ok?"Correct. ":"Not quite. ")+'</span>'+q[4];
+$("fb").hidden=false;$("hintBtn").hidden=true;$("hint").hidden=true;
+$("next").textContent=i===order.length-1?"See results":"Next";$("next").hidden=false;$("next").focus();
+}
+$("next").onclick=()=>{i++;if(i>=order.length)finish();else show()};
+$("hintBtn").onclick=()=>{$("hint").hidden=false;$("hintBtn").hidden=true};
+$("again").onclick=start;document.querySelectorAll("#modes button").forEach(b=>b.onclick=()=>{mode=b.dataset.m;start()});
+function finish(){
+$("quiz").hidden=true;$("done").hidden=false;$("prog").style.width="100%";
+$("final").textContent=score+" / "+order.length;
+$("msg").textContent=missed.length?"Review what you missed:":"Perfect. Run it again for a new order.";
+$("miss").innerHTML=missed.map(q=>"<li>"+(q[6]||q[0].replace("___","<b>"+q[2]+"</b>"))+"<small>"+q[4]+"</small></li>").join("");
+}
+start();
+</script>
+</body>
+</html>
